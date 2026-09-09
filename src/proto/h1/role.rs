@@ -2651,6 +2651,93 @@ mod tests {
         );
     }
 
+    /// Test that [`Client::encode()`] can encode headers in their original order if the
+    /// [`PreserveHeaderOrder`] extension has not been inserted in the response.
+    #[cfg(feature = "client")]
+    #[test]
+    fn test_client_encodes_headers_in_original_order() {
+        use crate::proto::BodyLength;
+        use http::header::HeaderValue;
+
+        let mut head = MessageHead::default();
+        head.headers
+            .insert("content-length", HeaderValue::from_static("10"));
+        head.headers
+            .insert("set-cookie", HeaderValue::from_static("a=b"));
+        head.headers
+            .insert("content-encoding", HeaderValue::from_static("gzip"));
+        head.headers
+            .append("set-cookie", HeaderValue::from_static("c=d"));
+
+        let preserve = crate::ext::PreserveHeaderOrder::default();
+        head.extensions.insert(preserve);
+
+        let mut vec = Vec::new();
+        Client::encode(
+            Encode {
+                head: &mut head,
+                body: Some(BodyLength::Known(10)),
+                #[cfg(feature = "server")]
+                keep_alive: true,
+                req_method: &mut None,
+                title_case_headers: false,
+                #[cfg(feature = "server")]
+                date_header: false,
+            },
+            &mut vec,
+        )
+        .unwrap();
+        let actual_response = String::from_utf8(vec).unwrap();
+
+        let expected_response =
+            "GET / HTTP/1.1\r\ncontent-length: 10\r\nset-cookie: a=b\r\ncontent-encoding: gzip\r\nset-cookie: c=d\r\n\r\n";
+
+        assert_eq!(actual_response, expected_response);
+    }
+
+    /// Test that [`Client::encode()`] can reorder headers by default if the
+    /// [`PreserveHeaderOrder`] extension has not been inserted in the response.
+    #[cfg(feature = "client")]
+    #[test]
+    fn test_client_encodes_headers_in_consolidated_order() {
+        use crate::proto::BodyLength;
+        use http::header::HeaderValue;
+
+        let mut head = MessageHead::default();
+        head.headers
+            .insert("content-length", HeaderValue::from_static("10"));
+        head.headers
+            .insert("set-cookie", HeaderValue::from_static("a=b"));
+        head.headers
+            .insert("content-encoding", HeaderValue::from_static("gzip"));
+        head.headers
+            .append("set-cookie", HeaderValue::from_static("c=d"));
+
+        // NB: No `PreserveHeaderOrder` extension is inserted into the message head here.
+
+        let mut vec = Vec::new();
+        Client::encode(
+            Encode {
+                head: &mut head,
+                body: Some(BodyLength::Known(10)),
+                #[cfg(feature = "server")]
+                keep_alive: true,
+                req_method: &mut None,
+                title_case_headers: false,
+                #[cfg(feature = "server")]
+                date_header: false,
+            },
+            &mut vec,
+        )
+        .unwrap();
+        let actual_response = String::from_utf8(vec).unwrap();
+
+        let expected_response =
+            "GET / HTTP/1.1\r\ncontent-length: 10\r\nset-cookie: a=b\r\nset-cookie: c=d\r\ncontent-encoding: gzip\r\n\r\n";
+
+        assert_eq!(actual_response, expected_response);
+    }
+
     #[cfg(feature = "server")]
     #[test]
     fn test_server_encode_connect_method() {
@@ -2778,6 +2865,89 @@ mod tests {
             b"HTTP/1.1 200 OK\r\nCONTENT-LENGTH: 10\r\nContent-Type: application/json\r\nDate: ";
 
         assert_eq!(&vec[..expected_response.len()], &expected_response[..]);
+    }
+
+    /// Test that [`Server::encode()`] can encode headers in their original order if the
+    /// [`PreserveHeaderOrder`] extension has not been inserted in the response.
+    #[cfg(feature = "server")]
+    #[test]
+    fn test_server_encodes_headers_in_original_order() {
+        use crate::proto::BodyLength;
+        use http::header::HeaderValue;
+
+        let mut head = MessageHead::default();
+        head.headers
+            .insert("content-length", HeaderValue::from_static("10"));
+        head.headers
+            .insert("set-cookie", HeaderValue::from_static("a=b"));
+        head.headers
+            .insert("content-encoding", HeaderValue::from_static("gzip"));
+        head.headers
+            .append("set-cookie", HeaderValue::from_static("c=d"));
+
+        let preserve = crate::ext::PreserveHeaderOrder::default();
+        head.extensions.insert(preserve);
+
+        let mut vec = Vec::new();
+        Server::encode(
+            Encode {
+                head: &mut head,
+                body: Some(BodyLength::Known(10)),
+                keep_alive: true,
+                req_method: &mut None,
+                title_case_headers: false,
+                date_header: false,
+            },
+            &mut vec,
+        )
+        .unwrap();
+        let actual_response = String::from_utf8(vec).unwrap();
+
+        let expected_response =
+            "HTTP/1.1 200 OK\r\ncontent-length: 10\r\nset-cookie: a=b\r\ncontent-encoding: gzip\r\nset-cookie: c=d\r\n\r\n";
+
+        assert_eq!(actual_response, expected_response);
+    }
+
+    /// Test that [`Server::encode()`] can reorder headers by default if the
+    /// [`PreserveHeaderOrder`] extension has not been inserted in the response.
+    #[cfg(feature = "server")]
+    #[test]
+    fn test_server_encodes_headers_in_consolidated_order() {
+        use crate::proto::BodyLength;
+        use http::header::HeaderValue;
+
+        let mut head = MessageHead::default();
+        head.headers
+            .insert("content-length", HeaderValue::from_static("10"));
+        head.headers
+            .insert("set-cookie", HeaderValue::from_static("a=b"));
+        head.headers
+            .insert("content-encoding", HeaderValue::from_static("gzip"));
+        head.headers
+            .append("set-cookie", HeaderValue::from_static("c=d"));
+
+        // NB: No `PreserveHeaderOrder` extension is inserted into the message head here.
+
+        let mut vec = Vec::new();
+        Server::encode(
+            Encode {
+                head: &mut head,
+                body: Some(BodyLength::Known(10)),
+                keep_alive: true,
+                req_method: &mut None,
+                title_case_headers: false,
+                date_header: false,
+            },
+            &mut vec,
+        )
+        .unwrap();
+        let actual_response = String::from_utf8(vec).unwrap();
+
+        let expected_response =
+            "HTTP/1.1 200 OK\r\ncontent-length: 10\r\nset-cookie: a=b\r\nset-cookie: c=d\r\ncontent-encoding: gzip\r\n\r\n";
+
+        assert_eq!(actual_response, expected_response);
     }
 
     #[cfg(feature = "server")]
