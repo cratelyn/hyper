@@ -296,3 +296,16 @@ impl OriginalHeaderOrder {
         self.entry_order.iter()
     }
 }
+
+/// An extension that preserves header order.
+//  TODO(kate): does this even need internal state?
+#[cfg(feature = "ffi")]
+#[derive(Clone, Debug, Default)]
+pub struct PreserveHeaderOrder {}
+
+#[cfg(feature = "ffi")]
+impl PreserveHeaderOrder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
