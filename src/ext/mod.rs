@@ -305,6 +305,7 @@ pub struct PreserveHeaderOrder {}
 
 #[cfg(feature = "ffi")]
 impl PreserveHeaderOrder {
+    /// Returns a new [`PreserveHeaderOrder`] extension.
     pub fn new() -> Self {
         Self::default()
     }
