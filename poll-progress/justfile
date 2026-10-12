@@ -1,0 +1,31 @@
+default:
+    just --list
+
+all: check lint test
+
+watch:
+    cargo watch -c -s 'just all'
+
+check:
+    cargo check --all-targets
+
+lint:
+    cargo clippy --all-targets
+
+test:
+    cargo test
+
+run-client *FLAGS:
+    cargo run --bin client -- {{FLAGS}}
+
+run-client-with-tracing *FLAGS:
+    RUSTFLAGS='--cfg hyper_unstable_tracing' cargo run --bin client --features tracing -- {{FLAGS}}
+
+run-server *FLAGS:
+    cargo run --bin server -- {{FLAGS}}
+
+run-server-with-tracing *FLAGS:
+    RUSTFLAGS='--cfg hyper_unstable_tracing' cargo run --bin server --features tracing -- {{FLAGS}}
+
+run-in-memory *FLAGS:
+    RUSTFLAGS='--cfg hyper_unstable_tracing' cargo run --bin in_memory --features tracing -- {{FLAGS}}
